@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
+import 'main_navigation.dart';
 
 
 void main() {
@@ -16,7 +17,7 @@ class HomeworkTrackerApp extends StatelessWidget {
     return MaterialApp(
       title: 'Homework Tracker',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primaryColor: const Color.fromARGB(255, 191, 101, 143),
       ),
       home: const SplashScreen(),
     );
@@ -36,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     Timer(const Duration(seconds: 2), () {
       Navigator.of(context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const MainNavigationScreen()));
     });
   }
 
@@ -45,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: Center(
         child: Text('Homework Tracker',
-          style: TextStyle(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold,
+          style: TextStyle(fontSize: 30, color: const Color.fromARGB(255, 244, 209, 216), fontWeight: FontWeight.bold,
           ),
           ),
       ),

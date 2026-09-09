@@ -13,25 +13,12 @@ class HomeScreen extends StatelessWidget {
             Text(
               'Welcome to Homework Tracker!',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 30,
                 fontWeight: FontWeight.bold,
+                color: const Color.fromARGB(255, 191, 101, 143),
               ),
             ),
 
-            ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.pinkAccent,
-              ),
-              child: const Text(
-                'Add Homework',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
           ],
         ),
       ),
