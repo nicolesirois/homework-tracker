@@ -5,7 +5,6 @@ import 'home_screen.dart';
 import 'views/main_navigation.dart';
 
 
-void main() {
   runApp(const HomeworkTrackerApp());
 }
 
