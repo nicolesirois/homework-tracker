@@ -69,7 +69,14 @@ void _handleForgotPassword() async {
 Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(
-      title: const Text('Login'),
+      title: const Text(
+              'Log in',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: const Color.fromARGB(255, 191, 101, 143),
+              ),
+            ),
       automaticallyImplyLeading: false,
     ),
     body: Padding(

@@ -11,6 +11,19 @@ class AssignmentListScreen extends StatefulWidget {
 
 class _AssignmentListScreenState extends State<AssignmentListScreen> {
   final AssignmentPresenter _presenter = AssignmentPresenter();
+  bool _isLoading = true;
+  bool _hideCompleted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAssignments();
+  }
+
+  Future<void> _loadAssignments() async {
+    await _presenter.loadAssignments();
+    setState(() => _isLoading = false);
+  }
 
   void _showAddAssignmentDialog() {
   String newAssignmentTitle = '';
@@ -90,16 +103,14 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
               ),
 
               TextButton(
-                onPressed: () {
+                onPressed: () async {
                   if (newAssignmentTitle.trim().isNotEmpty) {
-                    setState(() {
-                      _presenter.addAssignment(
-                        newAssignmentTitle.trim(),
-                        dueDate: selectedDueDate,
-                      );
-                    });
+                    await _presenter.addAssignment(newAssignmentTitle.trim(),
+                    dueDate: selectedDueDate,
+                    );
+                    await _presenter.loadAssignments();
+                    setState(() {});
                   }
-
                   Navigator.pop(context);
                 },
                 child: const Text('Add'),
@@ -114,7 +125,11 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final assignments = _presenter.assignments;
+    final assignments = _hideCompleted
+    ? _presenter.assignments
+        .where((assignment) => !assignment.isCompleted)
+        .toList()
+    : _presenter.assignments;
 
     return Scaffold(
       appBar: AppBar(
@@ -127,11 +142,13 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
               ),
             ),
       ),
-      body: ListView.builder(
+      body: 
+      _isLoading
+      ? const Center(child: CircularProgressIndicator())
+      : ListView.builder(
         itemCount: assignments.length,
         itemBuilder: (context, index) {
           final assignment = assignments[index];
-
           return CheckboxListTile(
             title: Column(
   crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,11 +164,11 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
       ),
     ),
 
-    if (assignment.dueDate != null)
-      Text(
-        'Due: ${assignment.dueDate!.month}/'
-        '${assignment.dueDate!.day}/'
-        '${assignment.dueDate!.year}',
+  if (assignment.dueDate != null)
+    Text(
+      'Due: ${assignment.dueDate!.month}/'
+      '${assignment.dueDate!.day}/'
+      '${assignment.dueDate!.year}',
         style: const TextStyle(
           fontSize: 12,
           color: Colors.grey,
@@ -160,18 +177,37 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
   ],
 ),
             value: assignment.isCompleted,
-            onChanged: (value) {
-              setState(() {
-                _presenter.toggleCompleted(index);
-              });
+            onChanged: (_) async {
+              await _presenter.toggleCompleted(index);
+              setState(() {});
             },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddAssignmentDialog,
-        child: const Icon(Icons.add),
+      floatingActionButton: Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    Padding(
+      padding: const EdgeInsets.only(left: 30),
+      child: FloatingActionButton(
+        onPressed: () {
+          setState(() {
+            _hideCompleted = !_hideCompleted;
+          });
+        },
+        child: Icon(
+          _hideCompleted
+              ? Icons.filter_alt
+              : Icons.filter_alt_outlined,
+        ),
       ),
+    ),
+    FloatingActionButton(
+      onPressed: _showAddAssignmentDialog,
+      child: const Icon(Icons.add),
+    ),
+  ],
+),
     );
   }
 }

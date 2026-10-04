@@ -10,7 +10,20 @@ class CourseListScreen extends StatefulWidget {
 
 class _CourseListScreenState extends State<CourseListScreen> {
   final CoursePresenter _presenter = CoursePresenter();
+  bool _isLoading = true;
 
+  @override
+  void initState(){
+    super.initState();
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    await _presenter.loadCourses();
+    setState(() => _isLoading = false);
+  }
+
+  
   void _showAddCourseDialog(){
     String name = '';
     String? description;
@@ -45,12 +58,11 @@ return AlertDialog(
       child: const Text('Cancel'),
     ),
     TextButton(
-      onPressed: () {
+      onPressed: () async {
         if (name.trim().isNotEmpty) {
-          setState(() {
-            _presenter.addCourse(name.trim(), description?.trim());
-          });
-          Navigator.pop(context);
+          await _presenter.addCourse(name.trim(), description?.trim());
+          setState(() {});
+        Navigator.pop(context);
         }
       },
       child: const Text('Add'),
@@ -73,14 +85,27 @@ Widget build(BuildContext context) {
                 color: const Color.fromARGB(255, 191, 101, 143),
               ),
             ),),
-    body: ListView.builder(
+    body: 
+    _isLoading
+    ?const Center(child: CircularProgressIndicator())
+    : ListView.builder(
       itemCount: courses.length,
       itemBuilder: (context, index) {
         final course = courses[index];
         return ListTile(
           title: Text(course.name),
-          subtitle: course.description != null ? Text(course.description!) : null,
-        );
+          subtitle: course.description != null
+          ? Text(course.description!)
+          : null,
+          trailing: IconButton(
+          icon: const Icon(Icons.delete),
+          color: const Color.fromARGB(255, 191, 101, 143),
+          onPressed: () async {
+        await _presenter.deleteCourse(course.name);
+      setState(() {});
+    },
+  ),
+);
       },
     ),
     floatingActionButton: FloatingActionButton(
