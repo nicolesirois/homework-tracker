@@ -1,6 +1,8 @@
 
 import 'package:flutter/material.dart';
 import '../presenters/assignment_presenter.dart';
+import '../presenters/course_presenter.dart';
+import '../widgets/add_fab.dart';
 
 class AssignmentListScreen extends StatefulWidget {
   const AssignmentListScreen({super.key});
@@ -10,24 +12,42 @@ class AssignmentListScreen extends StatefulWidget {
 }
 
 class _AssignmentListScreenState extends State<AssignmentListScreen> {
-  final AssignmentPresenter _presenter = AssignmentPresenter();
+  final AssignmentPresenter _assignmentPresenter = AssignmentPresenter();
+  final CoursePresenter _coursePresenter = CoursePresenter();
+
+  String? _selectedCourseFilter;
+  String? _newAssignmentCourse;
+  List<String> _courseNames = [];
   bool _isLoading = true;
   bool _hideCompleted = false;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _loadAssignments();
+    _loadData();
   }
 
   Future<void> _loadAssignments() async {
-    await _presenter.loadAssignments();
+    await _assignmentPresenter.loadAssignments();
     setState(() => _isLoading = false);
+  }
+
+  Future<void> _loadData() async {
+    await _coursePresenter.loadCourses();
+    await _assignmentPresenter.loadAssignments();
+
+    setState(() {
+      _isLoading = false;
+      _courseNames = _coursePresenter.courses.map((c) => c.name).toList();
+    });
   }
 
   void _showAddAssignmentDialog() {
   String newAssignmentTitle = '';
   DateTime? selectedDueDate;
+  _newAssignmentCourse = _courseNames.isNotEmpty ? _courseNames.first : null;
 
   showDialog(
     context: context,
@@ -38,11 +58,9 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
             title: const Text(
               'Add Assignment',
               style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: const Color.fromARGB(255, 191, 101, 143),
+                fontWeight: FontWeight.bold, color: const Color.fromARGB(255, 191, 101, 143),
               ),
             ),
-
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -51,13 +69,19 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Enter assignment title',
                   ),
-                  onChanged: (value) {
-                    newAssignmentTitle = value;
-                  },
+                  onChanged: (value) {newAssignmentTitle = value;},
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                  DropdownButton<String>(
+                    value: _newAssignmentCourse,
+                    items: _courseNames.map((name) {
+                      return DropdownMenuItem(value: name, child: Text(name));
+                    }).toList(),
+                    onChanged: (value) => setState(() => _newAssignmentCourse = value),
+                  ),
 
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     const Icon(Icons.calendar_today),
@@ -103,18 +127,23 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
               ),
 
               TextButton(
-                onPressed: () async {
-                  if (newAssignmentTitle.trim().isNotEmpty) {
-                    await _presenter.addAssignment(newAssignmentTitle.trim(),
+              onPressed: () async {
+                if (newAssignmentTitle.trim().isNotEmpty &&
+                    _newAssignmentCourse != null) {
+                  await _assignmentPresenter.addAssignment(
+                    newAssignmentTitle.trim(),
+                    _newAssignmentCourse!,
                     dueDate: selectedDueDate,
-                    );
-                    await _presenter.loadAssignments();
-                    setState(() {});
-                  }
+                  );
+
+                  await _assignmentPresenter.loadAssignments();
+
+                  setState(() {});
                   Navigator.pop(context);
-                },
-                child: const Text('Add'),
-              ),
+                }
+              },
+              child: const Text('Add'),
+            ),
             ],
           );
         },
@@ -125,66 +154,132 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final assignments = _hideCompleted
-    ? _presenter.assignments
-        .where((assignment) => !assignment.isCompleted)
-        .toList()
-    : _presenter.assignments;
+    final assignments = _assignmentPresenter.assignments;
+
+    final displayedAssignments = assignments.where((assignment) {
+      final matchesCourse = _selectedCourseFilter == null ||
+      assignment.courseName == _selectedCourseFilter;
+
+    final matchesSearch = assignment.title
+      .toLowerCase()
+      .contains(_searchQuery);
+
+    final matchesCompletion =
+      !_hideCompleted || !assignment.isCompleted;
+
+    return matchesCourse && matchesSearch && matchesCompletion;
+}).toList();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
               'Assignments',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: const Color.fromARGB(255, 191, 101, 143),
+              style: TextStyle(fontSize: 24,fontWeight: FontWeight.bold,color: const Color.fromARGB(255, 191, 101, 143),
               ),
-            ),
-      ),
-      body: 
-      _isLoading
-      ? const Center(child: CircularProgressIndicator())
-      : ListView.builder(
-        itemCount: assignments.length,
-        itemBuilder: (context, index) {
-          final assignment = assignments[index];
-          return CheckboxListTile(
-            title: Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Text(
-      assignment.title,
-      style: TextStyle(
-        decoration: assignment.isCompleted
-            ? TextDecoration.lineThrough
-            : TextDecoration.none,
-        decorationColor: Colors.red,
-        decorationThickness: 2,
-      ),
-    ),
+             ),
+              actions: [
+                if (_courseNames.isNotEmpty)
+                DropdownButton<String>(
+                  hint: const Text('Filter by Course', 
+                  style: TextStyle(color: Colors.white),
+                  ),
+                  dropdownColor: Color.fromARGB(255, 236, 194, 214),
+                  value: _selectedCourseFilter,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCourseFilter = value;
+                    });
+                  },
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('All Courses'),
+                    ),
+                    ..._courseNames.map(
+                      (name) => DropdownMenuItem(value: name, child: Text(name),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
 
-  if (assignment.dueDate != null)
-    Text(
-      'Due: ${assignment.dueDate!.month}/'
-      '${assignment.dueDate!.day}/'
-      '${assignment.dueDate!.year}',
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.grey,
-        ),
+     body:
+       _isLoading
+      ? const Center(child: CircularProgressIndicator())
+      : Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search assignments...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
+            ),
+          ),
+
+          Expanded(
+            child: ListView.builder(
+              itemCount: displayedAssignments.length,
+              itemBuilder: (context, index) {
+                final assignment = displayedAssignments[index];
+
+                return CheckboxListTile(
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        assignment.title,
+                        style: TextStyle(
+                          decoration: assignment.isCompleted
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
+                          decorationColor: Colors.red,
+                          decorationThickness: 2,
+                        ),
+                      ),
+                      if (assignment.dueDate != null)
+                        Text(
+                          'Due: ${assignment.dueDate!.month}/'
+                          '${assignment.dueDate!.day}/'
+                          '${assignment.dueDate!.year}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                    ],
+                  ),
+                  subtitle: Text('Course: ${assignment.courseName}'),
+                  value: assignment.isCompleted,
+                  onChanged: (_) async {
+                    final originalIndex =
+                        _assignmentPresenter.assignments
+                            .indexOf(assignment);
+
+                    await _assignmentPresenter
+                        .toggleCompleted(originalIndex);
+
+                    setState(() {});
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
-  ],
-),
-            value: assignment.isCompleted,
-            onChanged: (_) async {
-              await _presenter.toggleCompleted(index);
-              setState(() {});
-            },
-          );
-        },
-      ),
-      floatingActionButton: Row(
+      
+
+  floatingActionButton: Row(
   mainAxisAlignment: MainAxisAlignment.spaceBetween,
   children: [
     Padding(
@@ -202,13 +297,10 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
         ),
       ),
     ),
-    FloatingActionButton(
-      onPressed: _showAddAssignmentDialog,
-      child: const Icon(Icons.add),
-    ),
-  ],
+    AddFAB(onPressed: _showAddAssignmentDialog),
+ ],
 ),
-    );
-  }
+);
+}
 }
 

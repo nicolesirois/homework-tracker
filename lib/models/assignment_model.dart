@@ -5,9 +5,10 @@ class Assignment {
   final String title;
   bool isCompleted;
   DateTime? dueDate;
+  final String courseName;
 
 
-  Assignment({required this.title, this.isCompleted = false, this.dueDate});
+  Assignment({required this.title, this.isCompleted = false, this.dueDate, required this.courseName});
 
   static final _db = FirebaseDatabase.instance.ref();
   static final _auth = FirebaseAuth.instance;
@@ -32,6 +33,7 @@ class Assignment {
      assignments.add(
        Assignment(
          title: value['title'].toString(),
+         courseName: value['courseName'] ?? 'Unknown',
          isCompleted: value['isCompleted'] == true,
          dueDate: dueDate,
        ),
@@ -41,7 +43,7 @@ class Assignment {
     return assignments;
   }
 
-  static Future<void> addAssignment(String title, {DateTime? dueDate}) async {
+  static Future<void> addAssignment(String title, String courseName, {DateTime? dueDate}) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
     
@@ -49,6 +51,7 @@ class Assignment {
     await newRef.set({
       'title': title,
       'isCompleted': false,
+      'courseName': courseName,
       'dueDate': dueDate?.toIso8601String(),
     });
   }
