@@ -12,10 +12,10 @@ class AssignmentPresenter {
     ..addAll(fetched);
   }
 
-  Future<void> addAssignment(String title, {DateTime? dueDate}) async {
-    await Assignment.addAssignment(title, dueDate: dueDate);
-    _assignments.add(Assignment(title: title, 
-    dueDate: dueDate));
+  Future<void> addAssignment(String title, String courseName, {DateTime? dueDate}) async {
+    await Assignment.addAssignment(title, courseName, dueDate: dueDate);
+    _assignments.add(Assignment(title: title, courseName: courseName, 
+    dueDate: dueDate,));
   }
 
   Future<void> toggleCompleted(int index) async {

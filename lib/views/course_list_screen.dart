@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../presenters/course_presenter.dart';
+import '../widgets/add_fab.dart';
 
 class CourseListScreen extends StatefulWidget {
   const CourseListScreen({super.key});
@@ -11,6 +12,7 @@ class CourseListScreen extends StatefulWidget {
 class _CourseListScreenState extends State<CourseListScreen> {
   final CoursePresenter _presenter = CoursePresenter();
   bool _isLoading = true;
+  String _searchQuery = '';
 
   @override
   void initState(){
@@ -74,7 +76,9 @@ return AlertDialog(
   }
   @override
 Widget build(BuildContext context) {
-  final courses = _presenter.courses;
+  final courses = _presenter.courses
+    .where((course) =>
+        course.name.toLowerCase().contains(_searchQuery)).toList();
 
   return Scaffold(
     appBar: AppBar(title: const Text(
@@ -84,36 +88,58 @@ Widget build(BuildContext context) {
                 fontWeight: FontWeight.bold,
                 color: const Color.fromARGB(255, 191, 101, 143),
               ),
-            ),),
+            ),
+          ),
+
     body: 
     _isLoading
-    ?const Center(child: CircularProgressIndicator())
-    : ListView.builder(
-      itemCount: courses.length,
-      itemBuilder: (context, index) {
-        final course = courses[index];
-        return ListTile(
-          title: Text(course.name),
-          subtitle: course.description != null
-          ? Text(course.description!)
-          : null,
-          trailing: IconButton(
-          icon: const Icon(Icons.delete),
-          color: const Color.fromARGB(255, 191, 101, 143),
-          onPressed: () async {
-        await _presenter.deleteCourse(course.name);
-      setState(() {});
-    },
-  ),
-);
-      },
-    ),
-    floatingActionButton: FloatingActionButton(
-      onPressed: _showAddCourseDialog,
-      child: const Icon(Icons.add),
-    ),
+    ? const Center(child: CircularProgressIndicator())
+    : Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search courses...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
+              ),
+          ),
 
+          Expanded(
+            child: ListView.builder(
+              itemCount: courses.length,
+              itemBuilder: (context, index) {
+                final course = courses[index];
+
+                return ListTile(
+                  title: Text(course.name),
+                  subtitle: course.description != null
+                      ? Text(course.description!)
+                      : null,
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    color: const Color.fromARGB(255, 191, 101, 143),
+                    onPressed: () async {
+                      await _presenter.deleteCourse(course.name);
+                      setState(() {});
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    floatingActionButton: AddFAB(onPressed: _showAddCourseDialog,),
   );
 }
 }
-
