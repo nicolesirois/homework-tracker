@@ -1,28 +1,93 @@
 import 'package:flutter/material.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
+import '../presenters/assignment_presenter.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget{
   const HomeScreen({super.key});
 
-    @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Welcome to Homework Tracker!',
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final AssignmentPresenter _presenter = AssignmentPresenter();
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAssignments();
+  }
+
+  Future<void> _loadAssignments() async {
+    await _presenter.loadAssignments();
+    if (mounted) {
+      setState(() => _loading = false);
+    }
+  }
+
+  
+
+Widget build(BuildContext context) {
+  final percent = _presenter.completionRatio;
+
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text(
+              'Homework Tracker',
               style: TextStyle(
-                fontSize: 30,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: const Color.fromARGB(255, 191, 101, 143),
               ),
             ),
+    ),
+    body:
+      _loading
+        ? const Center(child: CircularProgressIndicator())
+        : Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Center(
+                child: CircularPercentIndicator(
+                  radius: 120.0,
+                  lineWidth: 14.0,
+                  percent: percent,
+                  center: Text(
+                    '${(percent * 100).round()}%',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      ),
+                    ),
 
-          ],
-        ),
-      ),
-    );
+                  progressColor: Color.fromARGB(255, 241, 149, 192),
+                  backgroundColor: Colors.grey.shade300,
+                  animation: true,
+                  animationDuration: 800,
+                  footer: const Padding(
+                    padding: EdgeInsets.only(top: 16),
+                    child: Text('Assignments Completed'),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 40),
+                  Card(
+                    child: ListTile(
+                      title: const Text('Total Assignments:'),
+                      trailing: Text('${_presenter.totalAssignments}', 
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color.fromARGB(255, 164, 86, 107),
+                      )),
+                    ),
+                  ),
+                 ],
+                ),
+              ),
+   );
   }
 }
-
